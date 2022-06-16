@@ -7065,26 +7065,75 @@ def solve_MINLP_quality(model, opt):
         model.v_F_DisposalDestination[(k, t)].setub(None)
 
     results = opt.solve(model, tee=True, symbolic_solver_labels=True)
+    mathoptsolver = 'dicopt'
+    solver_options = {'tol': 1e-3,
+                    'max_iter': 1000,
+                    'constr_viol_tol': 0.009,
+                    'acceptable_constr_viol_tol': 0.01,
+                    'acceptable_tol': 1e-6,
+                    'mu_strategy': 'adaptive',
+                    'mu_init': 1e-10,
+                    'mu_max': 1e-1,
+                    'print_user_options': 'yes',
+                    'warm_start_init_point': 'yes',
+                    'warm_start_mult_bound_push': 1e-60,
+                    'warm_start_bound_push': 1e-60,
+                    #   'linear_solver': 'ma27',
+                    #   'ma57_pivot_order': 4
+                    }
+    import os
+    if not os.path.exists('temp'):
+        os.makedirs('temp')
+
+    with open('temp/' + mathoptsolver + '.opt', "w") as f:
+        for k, v in solver_options.items():
+            f.write(str(k) + ' ' + str(v) + '\n')
+
+    solver_source = 'gams'
+    # if solver_source == 'gams':
+	#     results = SolverFactory(solver_source).solve(
+	# 	model, tee=True, keepfiles=True,
+	# 	solver=mathoptsolver, tmpdir='temp',
+	# 	add_options=['gams_model.optfile=1;'])
+    # elif solver_source == 'pyomo':
+    #     solver = SolverFactory(mathoptsolver)
+    #     solver.options = solver_options
+    #     results = opt.solve(model, tee=True, warmstart=True)
+    # elif solver_source == 'baron':
+    #     solver = SolverFactory('baron')
+    #     results = solver.solve(model, tee=True)
 
     # Unbound or unfix all non quality variables
     def split(a, n):
         k, m = divmod(len(a), n)
         return (a[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)] for i in range(n))
 
-    time_periods_split = list(split(range(len(model.s_T)), 8))
-    for split in time_periods_split:
-        time_periods = list()
-        for i in split:
-            time_periods.append(model.s_T[i + 1])
+    # time_periods_split = list(split(range(len(model.s_T)), 8))
+    # for split in time_periods_split:
+    #     time_periods = list()
+    #     for i in split:
+    #         time_periods.append(model.s_T[i + 1])
 
-        bound_variables_to_value(model, discrete_variables_names)
-        free_variables(model, discrete_variables_names, time_periods)
-        print("solve model for time periods: [%s]" % ", ".join(map(str, time_periods)))
+    #     bound_variables_to_value(model, discrete_variables_names)
+    #     free_variables(model, discrete_variables_names, time_periods)
+    #     print("solve model for time periods: [%s]" % ", ".join(map(str, time_periods)))
 
-        results = opt.solve(model, tee=True, warmstart=True)
+    #     results = opt.solve(model, tee=True, warmstart=True)
 
     free_variables(model, discrete_variables_names)
-    results = opt.solve(model, tee=True, warmstart=True)
+    # results = opt.solve(model, tee=True, warmstart=True)
+    if solver_source == 'gams':
+	    results = SolverFactory(solver_source).solve(
+		model, tee=True, keepfiles=True,
+		solver=mathoptsolver, tmpdir='temp',
+		add_options=['gams_model.optfile=1;'])
+    elif solver_source == 'pyomo':
+        # solver = SolverFactory(mathoptsolver)
+        # solver.options = solver_options
+        results = opt.solve(model, tee=True, warmstart=True)
+    elif solver_source == 'baron':
+        solver = SolverFactory('baron')
+        results = solver.solve(model, tee=True)
 
     # for var in model.component_objects(Var):
     #     if var.name in discrete_variables_names:
@@ -7138,7 +7187,8 @@ def solve_Mindtpy_quality(model):
     results = SolverFactory("mindtpy").solve(
         model,
         mip_solver="gurobi",
-        nlp_solver="ipopt",
+        nlp_solver="gams",
+        nlp_solver_args=dict(solver='conopt', warmstart=True),
         strategy="OA",
         time_limit=3600,
         tee=True,
