@@ -85,7 +85,7 @@ class IncludeNodeCapacity(Enum):
 class WaterQuality(Enum):
     false = 0
     post_process = 1
-    mindtpy = (2,)
+    mindtpy = 2
     minlp = 3
 
 
@@ -7089,7 +7089,7 @@ def solve_MINLP_quality(model, opt):
         for k, v in solver_options.items():
             f.write(str(k) + ' ' + str(v) + '\n')
 
-    solver_source = 'gams'
+    solver_source = 'baron'
     # if solver_source == 'gams':
 	#     results = SolverFactory(solver_source).solve(
 	# 	model, tee=True, keepfiles=True,
@@ -7506,7 +7506,7 @@ def solve_model(model, options=None):
         model = postprocess_water_quality_calculation(model, opt)
 
     if model.config.water_quality == WaterQuality.minlp:
-        solve_MINLP_quality(model, opt)
+        solve_MINLP_quality(scaled_model, opt)
 
     if model.config.water_quality == WaterQuality.mindtpy:
         solve_Mindtpy_quality(model)

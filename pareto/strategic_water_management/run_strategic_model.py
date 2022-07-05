@@ -125,7 +125,7 @@ strategic_model = create_model(
         "pipeline_cost": PipelineCost.distance_based,
         "pipeline_capacity": PipelineCapacity.input,
         "node_capacity": IncludeNodeCapacity.true,
-        "water_quality": WaterQuality.mindtpy,
+        "water_quality": WaterQuality.minlp,
     },
 )
 
